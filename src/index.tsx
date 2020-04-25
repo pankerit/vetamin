@@ -31,15 +31,16 @@ export interface UseStore<T extends State> {
 export type WithStore<T extends State> = <U>(selector: Selector<T, U>, equalityFn: EqualityChecker<U>) => any
 
 type TipaAction<T extends State> = {
-  [K: string]: (state: T, payload: any) => Partial<T> | Promise<Partial<T>>
+  [K: string]: (state: T, payload?: any) => Partial<T>
+}
+type StoreActio<T extends TipaAction<State>> = {
+  [K in keyof T]: (payload: Parameters<T[K]>[1]) => void
 }
 
 class CreateStore<TState extends State, TAction extends TipaAction<TState>> {
   private state: TState
   private listeners: Set<() => any>
-  actions!: {
-    [K in keyof TAction]: (payload: Parameters<TAction[K]>[1]) => void
-  }
+  actions!: StoreActio<TAction>
 
   constructor({ state, action, name }: { state: TState; action?: TAction; name?: string }) {
     this.state = { ...state }
@@ -55,8 +56,9 @@ class CreateStore<TState extends State, TAction extends TipaAction<TState>> {
       //@ts-ignore
       this.actions = {}
       for (let key in action) {
-        this.actions[key] = async payload => {
-          this.set(await action[key](this.state, payload))
+        console.log(action[key])
+        this.actions[key] = payload => {
+          this.set(action[key](this.state, payload))
           devtool.send(key, this.state)
         }
       }
