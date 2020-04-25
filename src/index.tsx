@@ -135,7 +135,7 @@ class CreateStore<TState extends State, TAction extends TipaAction<TState>> {
         this.subscriber.unsubscribe()
       }
       render() {
-        return <WrappedComponent {...this.props} />
+        return <WrappedComponent {...this.props} {...this.subscriber.currentSlice} />
       }
     }
   }
