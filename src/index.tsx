@@ -50,32 +50,44 @@ class CreateStore<TState extends State, TAction extends TipaAction<TState>> {
       const reduxExtension = (window as any).__REDUX_DEVTOOLS_EXTENSION__
       if (!reduxExtension) {
         console.warn('Please install/enable Redux devtools extension')
-      }
-      const devtool = reduxExtension.connect({ name })
-      console.log(name)
-      //@ts-ignore
-      this.actions = {}
-      for (let key in action) {
-        console.log(action[key])
-        this.actions[key] = payload => {
-          this.set(action[key](this.state, payload))
-          devtool.send(key, this.state)
+      } else {
+        const devtool = reduxExtension.connect({ name })
+        // console.log(name)
+        //@ts-ignore
+        this.actions = {}
+        for (let key in action) {
+          // console.log(action[key])
+          this.actions[key] = payload => {
+            this.set(action[key](this.state, payload))
+            devtool.send(key, this.state)
+          }
         }
-      }
 
-      devtool.init(this.state)
+        devtool.init(this.state)
+      }
     }
   }
 
   getState = () => this.state
 
   set: SetState<TState> = state => {
-    if (typeof state === 'function') {
-      this.state = { ...this.state, ...state(this.state) }
-    } else {
+    if (typeof state !== 'function') {
       this.state = { ...this.state, ...state }
+      this.updateListeners()
+    } else {
+      let fn = state(this.state)
+      if (typeof fn.then === 'function') {
+        return fn.then((data: Partial<TState>) => {
+          this.state = { ...this.state, ...data }
+          this.updateListeners()
+        })
+      } else {
+        this.state = { ...this.state, ...state(this.state) }
+        this.updateListeners()
+      }
     }
-
+  }
+  private updateListeners() {
     this.listeners.forEach(listener => listener())
   }
   // private
